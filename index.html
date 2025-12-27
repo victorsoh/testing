@@ -365,8 +365,12 @@
         console.assert("@[e.data] is not a string", e.data);
       }
     };
+    _$websocket_.onerror = (event) => {
+      console.error('WebSocket Error:', event);
+    };
     //############################################################################## END SCRIPT
   </script>
 </body>
 
 </html>
+
