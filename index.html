@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"> <!-- needed to properly display 🎮 and 🖥️ -->
+  <style>
+    #modeButton {
+      position: fixed;
+      top: 10px;
+      left: calc(100% - 38px - 10px);
+      padding: 10px;
+      background-color: #eee;
+      color: white;
+      border: none;
+      cursor: grab;
+      z-index: 9999;
+      user-select: none;
+      touch-action: none; /* prevent scrolling while dragging */
+    }
+
+    .Gcss\$y\$dom\$Spritesheet\$V\._path\$Wv {
+      fill:cyan;
+    }
+  </style>
+</head>
+<body>
+  <button id="modeButton">🎮</button>
+  <script>
+    "use strict";
+    //
+    // Status: Updated (and double checked) on 2025-12-27
+    //
+    // todo: add error message when user provide wrong IP address
+    //
+    //############################################################################## BEGIN SCRIPT
+    //============================================================================== $main()
+    function $main(nServer) {
+      let $RemoteDesktop = $$.$y$.$app$._$RemoteDesktop_;
+      (function () {
+        let svgStyleTag$W = document.createElement('style');
+        svgStyleTag$W.textContent = `svg { opacity: 0.5; pointer-events: auto; }`;
+        document.head.appendChild(svgStyleTag$W);
+
+        let modeButton$W = document.getElementById('modeButton');
+        let modeButtonIsDragged$B = false;
+        let modeButtonDragOffsetX$Q = 0;
+        let modeButtonDragOffsetY$Q = 0;
+
+        modeButton$W.addEventListener("click", () => {
+          if (modeButton$W.textContent == "🎮") {
+            modeButton$W.textContent = "🖥️";
+            svgStyleTag$W.textContent = `svg { opacity: 0; pointer-events: none; }`; // Make all SVGs invisible and non-interactive
+          } else {
+            modeButton$W.textContent = "🎮";
+            svgStyleTag$W.textContent = `svg { opacity: 0.5; pointer-events: auto; }`; // Make all SVGs visible
+          }
+        });
+
+        $$.$y$.$dom$.$callback$0$EventListener_start$2F_move$3F_stop$4F_when_$1RlWv$Element_is_dragged(modeButton$W,
+          (x$Q, y$Q) => {
+            modeButton$W.style.cursor = "grabbing";
+            const rect$W = modeButton$W.getBoundingClientRect();
+            modeButtonDragOffsetX$Q = x$Q - rect$W.left;
+            modeButtonDragOffsetY$Q = y$Q - rect$W.top;
+          },
+          (x$Q, y$Q) => {
+            modeButton$W.style.left = x$Q - modeButtonDragOffsetX$Q + "px";
+            modeButton$W.style.top = y$Q - modeButtonDragOffsetY$Q + "px";
+          },
+          (x$Q, y$Q) => {
+            modeButton$W.style.cursor = "grab";
+          }
+        );
+      })();
+
+      console.log(nServer.binaryType);
+      $$.$y$.$math$.$Complex$Js.$config$$Macheps.set_absoluteLimit$1UQpd_for_context$2U(0.00000001);
+      $$.$y$.$math$.$Complex$Js.$config$$Macheps.set_relativeLimit$1UQpd_for_context$2U(0.00000001);
+
+      function send_message$1_to_server(binaryOrTextData) {
+        // Reminder:
+        // https://chatgpt.com/
+        // o@{
+        //    In JavaScript, a WebSocket can send either text or binary data.
+        //
+        //    ✅ Text:
+        //    If you pass a string to @[WebSocket.send()], it's sent as a text frame:
+        //    @[
+        //      socket.send("Hello, server!");
+        //     ]
+        //
+        //    ✅ Binary:
+        //    If you pass a @[Blob], @[ArrayBuffer], or @[TypedArray], it's sent as a binary frame:
+        //    @[
+        //      const buffer = new ArrayBuffer(8);
+        //      socket.send(buffer);
+        //     ]
+        //   }
+        //
+        nServer.send(binaryOrTextData);
+      }
+
+      function inject_press_1$VirtualKeyCode(vkCode) {
+        nServer.send(
+          $RemoteDesktop.$BUILD_COMMAND$0W$ArrayBuffer_TO_INJECT_$1$VirtualKeyCode_PRESS_OR_RELEASE$2B(
+            vkCode,
+            false, // press = NOT release
+          )
+        );
+      }
+
+      function inject_release_1$VirtualKeyCode(vkCode) {
+        nServer.send(
+          $RemoteDesktop.$BUILD_COMMAND$0W$ArrayBuffer_TO_INJECT_$1$VirtualKeyCode_PRESS_OR_RELEASE$2B(
+            vkCode,
+            true, // release
+          )
+        );
+      }
+
+      function receive_message$1_from_server(z) {
+        let f = new Function(z);
+        f();
+      }
+
+      // --------------------------------------------------------------------------
+      // Setup @[gamepad$E] to respond to both Victor's PS2 gamepad and SVG gamepad
+      // --------------------------------------------------------------------------
+      // Setup the PS2 gamepad, which was experimentally found to be indexed by 1
+      let gamepad$C = $$.$y$.$app$.$Ps2ViaTwinUsbJoystick$C.$from$0Y_index$1Zpsd(1);
+      gamepad$C.set_left_stick_deadband_radius$1Qpsdcui$$B(0.1);
+      gamepad$C.set_right_stick_deadband_radius$1Qpsdcui$$B(0.1);
+
+      // Make the PS2 gamepad control the SVG gamepad
+      let gamepad$EV = $$.$y$.$dom$.$MonoGamepadExt$EV.$FROM$0Y_GETTER$1F_FOR_STANDARD_GAMEPAD(() => {
+        return gamepad$C;
+      });
+
+      // Make the SVG gamepad communicate with @[nServer]
+      let gamepad$E = $$.$y$.$navigator$.$Gamepad$E.$FROM$0Y_GETTER$1F_FOR_STANDARD_GAMEPAD(() => {
+        return gamepad$EV;
+      });
+
+      // --------------------------------
+      // Setup callbacks for @[gamepad$E]
+      // --------------------------------
+      const mapIdToKey$LaZpd = [
+        "B".charCodeAt(0), // B
+        "A".charCodeAt(0), // A
+        "Y".charCodeAt(0), // Y
+        "X".charCodeAt(0), // X
+        "L".charCodeAt(0), // L
+        "R".charCodeAt(0), // R
+        "Q".charCodeAt(0), // ≈ right syllable of "cutie"; for ZL
+        "T".charCodeAt(0), // ≈ left syllable of "cutie"; for ZR
+        "M".charCodeAt(0), // ≘ Minus
+        "P".charCodeAt(0), // ≘ Plus
+        "Z".charCodeAt(0), // ≈ Sinister (i.e. Left); for Lshift
+        "D".charCodeAt(0), // ≘ Dexter (i.e. Right); for Rshift
+        "N".charCodeAt(0), // ≘ North; for Dpad up
+        "S".charCodeAt(0), // ≘ South; for Dpad down
+        "W".charCodeAt(0), // ≘ West; for Dpad left
+        "E".charCodeAt(0), // ≘ East; for Dpad right
+        "C".charCodeAt(0), // ≘ Center
+      ];
+
+      // Handle button D before @[send_message$1_to_server]
+      gamepad$E.on$1F_startHoldButton_$t1Zpsd[11](() => {
+        let o = $$.$y$.$dom$.$get_client_viewport_sizeInCssPixels$0HoZpd();
+
+        console.log("screen: " + screen.width + " x " + screen.height);
+        console.log("viewport: " + o.width$Zpd + " x " + o.height$Zpd);
+        console.log("window: " + window.innerWidth + " x " + window.innerHeight);
+        console.log("html: " + document.documentElement.clientWidth + " x " + document.documentElement.clientHeight);
+      });
+
+      // Handle button C before @[send_message$1_to_server]
+      gamepad$E.on$1F_startHoldButton_$t1Zpsd[16](() => {
+        //location.reload();
+        inject_press_1$VirtualKeyCode(" ".charCodeAt(0));
+      });
+      gamepad$E.on$1F_stopHoldButton_$t1Zpsd[16](() => {
+        inject_release_1$VirtualKeyCode(" ".charCodeAt(0));
+      });
+
+      for (let i = 0, n = gamepad$EV.buttons.length; i < n; ++i) {
+        gamepad$E.on$1F_startHoldButton_$t1Zpsd[i](() => {
+          inject_press_1$VirtualKeyCode(mapIdToKey$LaZpd[i]);
+        });
+        gamepad$E.on$1F_stopHoldButton_$t1Zpsd[i](() => {
+          inject_release_1$VirtualKeyCode(mapIdToKey$LaZpd[i]);
+        });
+      }
+
+      const xL = gamepad$EV.axes[0];
+      const yL = gamepad$EV.axes[1];
+      const xR = gamepad$EV.axes[2];
+      const yR = gamepad$EV.axes[3];
+
+      // H ≘ Horizontal
+      gamepad$E.on$1F_startHoldWest_$t1Zpsd[0](() => {
+        inject_press_1$VirtualKeyCode(0x25); // @[VK_LEFT]
+      });
+      gamepad$E.on$1F_startHoldEast_$t1Zpsd[0](() => {
+        inject_press_1$VirtualKeyCode(0x27); // @[VK_RIGHT]
+      });
+      gamepad$E.on$1F_stopHoldWest_$t1Zpsd[0](() => {
+        inject_release_1$VirtualKeyCode(0x25); // @[VK_LEFT]
+      });
+      gamepad$E.on$1F_stopHoldEast_$t1Zpsd[0](() => {
+        inject_release_1$VirtualKeyCode(0x27); // @[VK_RIGHT]
+      });
+
+      // V ≘ Vertical
+      gamepad$E.on$1F_startHoldNorth_$t1Zpsd[0](() => {
+        inject_press_1$VirtualKeyCode(0x26); // @[VK_UP]
+      });
+      gamepad$E.on$1F_startHoldSouth_$t1Zpsd[0](() => {
+        inject_press_1$VirtualKeyCode(0x28); // @[VK_DOWN]
+      });
+      gamepad$E.on$1F_stopHoldNorth_$t1Zpsd[0](() => {
+        inject_release_1$VirtualKeyCode(0x26); // @[VK_UP]
+      });
+      gamepad$E.on$1F_stopHoldSouth_$t1Zpsd[0](() => {
+        inject_release_1$VirtualKeyCode(0x28); // @[VK_DOWN]
+      });
+
+      /*
+      // F ≘ ↔Flat Floor
+      gamepad$E.on$1F_startHoldWest_$t1Zpsd[1](() => {
+        send_message$1_to_server(
+          $RemoteDesktop.$BUILD_COMMAND$0W$ArrayBuffer_TO_INJECT_MOUSE_TELEPORT_TO_RELATIVE_XY$12Z(-1, 0)
+        );
+      });
+      gamepad$E.on$1F_startHoldEast_$t1Zpsd[1](()=>{
+        send_message$1_to_server(
+          $RemoteDesktop.$BUILD_COMMAND$0W$ArrayBuffer_TO_INJECT_MOUSE_TELEPORT_TO_RELATIVE_XY$12Z(1, 0)
+        );
+      });
+      gamepad$E.on$1F_stopHoldWest_$t1Zpsd[1](()=>{
+      });
+      gamepad$E.on$1F_stopHoldEast_$t1Zpsd[1](()=>{
+      });
+
+      // G ≘ ↕Gravity
+      gamepad$E.on$1F_startHoldNorth_$t1Zpsd[1](() => {
+        send_message$1_to_server(
+          $RemoteDesktop.$BUILD_COMMAND$0W$ArrayBuffer_TO_INJECT_MOUSE_TELEPORT_TO_RELATIVE_XY$12Z(0, -1)
+        );
+      });
+      gamepad$E.on$1F_startHoldSouth_$t1Zpsd[1](() => {
+        send_message$1_to_server(
+          $RemoteDesktop.$BUILD_COMMAND$0W$ArrayBuffer_TO_INJECT_MOUSE_TELEPORT_TO_RELATIVE_XY$12Z(0, 1)
+        );
+      });
+      gamepad$E.on$1F_stopHoldNorth_$t1Zpsd[1](()=>{
+      });
+      gamepad$E.on$1F_stopHoldSouth_$t1Zpsd[1](()=>{
+      });
+      */
+
+      function _map_axis$1Qcsui_to_char$S_(q) {
+        return String.fromCharCode(0x8000 + Math.round(q * 10));
+      }
+
+      function _handle_input_() {
+        if (gamepad$C.tick$0B()) {
+          gamepad$EV.tick_to_emit();
+        }
+        gamepad$E.tick_to_emit();
+
+        // -----------------
+        // Handle left stick
+        // -----------------
+        const a$RkLaQcsui = gamepad$E.getClampedState$F().axes;
+
+        const dx = Math.floor(a$RkLaQcsui[2] * 10);
+        const dy = Math.floor(a$RkLaQcsui[3] * 10);
+        if (dx || dy) {
+          send_message$1_to_server(
+            $RemoteDesktop.$BUILD_COMMAND$0W$ArrayBuffer_TO_INJECT_MOUSE_TELEPORT_TO_RELATIVE_XY$12Z(
+              dx,
+              dy
+            )
+          );
+        }
+
+        window.requestAnimationFrame(_handle_input_);
+      }
+      window.requestAnimationFrame(_handle_input_);
+
+      // ---------------------------
+      // Setup callback for keyboard
+      // ---------------------------
+      document.addEventListener("keydown", function (e) {
+        console.log("keydown: ", e.code);
+      });
+
+      document.addEventListener("keyup", function (e) {
+        console.log("keyup: ", e.code);
+      });
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////
+    //                                                                            //
+    //              BEGIN code to use @[$$] framework to run @[$main]             //
+    //                                                                            //
+    ////////////////////////////////////////////////////////////////////////////////
+    //
+    // todo: allow @[_$websocket_] to be changed in "config.js"
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_client_applications
+    //var _$websocket_ = new WebSocket("ws://192.168.1.174:9002");
+    var _$websocket_ = new WebSocket("wws://192.168.1.174:19002");
+
+    _$websocket_.addEventListener("open", () => {
+      console.log("CONNECTED");
+
+      // Send error to C++ via telemetry
+      window.addEventListener("error", (event) => {
+        if (event.error.cause === undefined) {
+          _$websocket_.send(`$$.$alert_$p1(${JSON.stringify(event.error.message)});`);
+        } else {
+          _$websocket_.send(`$$.$alert_$p1(${JSON.stringify(event.error.message)}, ";cause=", ${JSON.stringify(event.error.cause)});`);
+        }
+        // todo: consider using https://apvarun.github.io/toastify-js/ to display error messages
+      });
+
+      _$websocket_.send("$$.$open_console();");
+
+      const originalLog = console.log;
+      console.log = function (...args$Lp) {
+        // keep normal console logging
+        originalLog.apply(console, args$Lp);
+
+        // add extra behavior
+        _$websocket_.send(`$$.$log_$p1(${JSON.stringify(args$Lp)});`);
+      };
+
+      _$websocket_.send("");
+      /*
+      websocket.send(`
+      var path = [];
+      var x;
+
+      for (x = 0; x <= 6.283; x += 0.1) {
+        path.push([100 * x, 500 + 100 * Math.sin(x)]);
+      }
+      $$.$set_mouseSpeedInPixelsPerSecond$1Zpd(100);
+      $$.$inject_mouse_motion_following_absolute_path$1LaLaZ$$n$$2(path);
+      `);
+      */
+      //websocket.send("$$.$alert_$p1('Hello World!')");
+    });
+    _$websocket_.addEventListener("error", (e) => {
+      console.log(`ERROR`);
+    });
+    _$websocket_.addEventListener("close", () => {
+      console.log("DISCONNECTED");
+    });
+    _$websocket_.onmessage = function (e) {
+      if (typeof e.data === "string") {
+        let f = new Function(e.data);
+        f();
+      } else {
+        console.assert("@[e.data] is not a string", e.data);
+      }
+    };
+    //############################################################################## END SCRIPT
+  </script>
+</body>
+</html>
