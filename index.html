@@ -32,8 +32,8 @@
     // todo: add error message when user provide wrong IP address
     //
     //############################################################################## BEGIN SCRIPT
-    //============================================================================== $main()
-    function $main(nServer) {
+    //===================================================================== _$main()
+    function _$main(nServer) {
       let $RemoteDesktop = $$.$y$.$app$._$RemoteDesktop_;
       (function () {
         let svgStyleTag$W = document.createElement('style');
@@ -300,6 +300,13 @@
       });
     }
 
+    //============================================================================== $main()
+    function $main(nServer) {
+      $$.$y$.$dom$.$enter$0B_fullscreen_landscape_mode_then_callback_$1UF_after_delay$2U$$ms(()=>{
+        _$main(nServer)
+      });
+    }
+    
     ////////////////////////////////////////////////////////////////////////////////
     //                                                                            //
     //              BEGIN code to use @[$$] framework to run @[$main]             //
@@ -373,4 +380,5 @@
 </body>
 
 </html>
+
 
